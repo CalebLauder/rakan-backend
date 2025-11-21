@@ -5,7 +5,7 @@ import random
 import logging
 from typing import Optional
 
-from simulators.base_device import BaseDevice
+from simulator.base_device import BaseDevice
 
 LOG = logging.getLogger("motion_sensor")
 LOG.setLevel(logging.INFO)

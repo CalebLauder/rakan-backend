@@ -1,7 +1,7 @@
 import random
 import time
 from .base_simulator import BaseDevice
-from simulator.config import EVENTS_TOPIC, COMMANDS_TOPIC_FMT
+from simulator.config import MQTT_ENDPOINT, CERT_PATH, KEY_PATH, CA_PATH, EVENTS_TOPIC, COMMANDS_TOPIC_FMT
 
 class MotionSensor(BaseDevice):
     def __init__(self, device_id, client_id, endpoint, cert, key, ca,

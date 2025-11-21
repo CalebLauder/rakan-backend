@@ -2,6 +2,7 @@
 import time
 import random
 import logging
+import json
 from typing import Optional
 
 from simulators.base_device import BaseDevice

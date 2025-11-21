@@ -12,7 +12,8 @@ LOG = logging.getLogger("motion_sensor")
 LOG.setLevel(logging.INFO)
 
 
-class MotionSensor(BaseDevice):
+from base_simulator import BaseSimulator
+
     """
     Motion sensor simulator.
 

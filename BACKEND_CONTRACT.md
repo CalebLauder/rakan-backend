@@ -17,3 +17,6 @@ MQTT Topics:
 
 rakan/events
 rakan/commands/<deviceId>
+
+
+----EventProcessor returns a single JSON command object with deviceId, action, and value. This is what gets published to rakan/commands/<deviceId>.

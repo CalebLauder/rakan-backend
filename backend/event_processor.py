@@ -1,163 +1,82 @@
-import json
-import os
-import requests
+from command_publisher import CommandPublisher
+import boto3, json, os, uuid
+from datetime import datetime
 
-# Database helpers (Martin's DB Layer)
-from backend.db import (
-    get_device_state,
-    put_device_state,
-    log_event,
-)
+class EventProcessor:
+    def __init__(self):
+        self.publisher = CommandPublisher()
+ddb = boto3.client("dynamodb")
+iot = boto3.client("iot-data", region_name="us-east-1")
+lam = boto3.client("lambda")
 
-# Command publisher (publishes MQTT commands to AWS IoT)
-from backend.command_publisher import publish_command
+class EventProcessor:
+    def handle_event(self, event):
+        device_id = event.get("deviceId")
+        event_type = event.get("type")
+        data = event.get("data", {})
 
+        print(f"Received event from {device_id}: {data}")
 
-# --------------------------------------------------
-# ENVIRONMENT VARIABLES (Lambda env)
-# --------------------------------------------------
-LAM_API_KEY = os.getenv("LAM_API_KEY", "")
-LAM_URL = os.getenv("LAM_URL", "")
+        if event_type == "motion" and data.get("motion") is True:
+            self.publisher.publish(device_id, "switch", True)
 
+        if event_type == "temperature":
+            temp = data.get("temperature")
+            if temp and temp > 75:
+                self.publisher.publish(device_id, "cooling", True)
 
-# --------------------------------------------------
-# LAM CALL FUNCTION
-# --------------------------------------------------
-def call_lam(lam_input: dict) -> dict:
-    """
-    Sends event + state to the LAM reasoning engine
-    and returns structured JSON with an AI decision.
-    """
-
-    if not LAM_URL:
-        # If not configured, immediately fallback
-        return {"error": "LAM_URL not configured"}
-
-    try:
-        headers = {
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {LAM_API_KEY}",
-        }
-
-        resp = requests.post(
-            LAM_URL,
-            headers=headers,
-            json=lam_input,
-            timeout=5,
+if __name__ == "__main__":
+        # 1. Log incoming event
+        ddb.put_item(
+            TableName=os.environ["EVENT_TABLE"],
+            Item={
+                "id": {"S": str(uuid.uuid4())},
+                "timestamp": {"S": datetime.utcnow().isoformat()},
+                "event": {"S": json.dumps(event)}
+            }
         )
-        return resp.json()
-    except Exception as e:
-        return {"error": str(e)}
 
+        # 2. Call LAM to get a decision
+        lam_response = lam.invoke(
+            FunctionName=os.environ["LAM_FUNCTION_NAME"],
+            Payload=json.dumps(event)
+        )
 
-# --------------------------------------------------
-# VALIDATE LAM OUTPUT
-# --------------------------------------------------
-def validate_lam_output(obj: dict) -> bool:
-    """
-    Ensures LAM returns a JSON object with:
-    - action
-    - deviceId
-    - value
-    """
-    return (
-        isinstance(obj, dict)
-        and "action" in obj
-        and "deviceId" in obj
-        and "value" in obj
-    )
+        decision = json.loads(lam_response["Payload"].read())
 
+        device_id = decision["deviceId"]
+        action = decision["action"]
+        value = decision["value"]
 
-# --------------------------------------------------
-# FALLBACK RULE
-# --------------------------------------------------
-def fallback_rule(event: dict) -> dict:
-    """
-    Fallback logic for when LAM fails.
-    Always choose "ignore" for safety.
-    """
-    return {
-        "action": "ignore",
-        "deviceId": event.get("deviceId", "unknown"),
-        "value": None,
-        "reason": "LAM unavailable or invalid output, fallback executed.",
+        # 3. Publish resulting command
+        iot.publish(
+            topic=f"rakan/commands/{device_id}",
+            qos=1,
+            payload=json.dumps(decision)
+        )
+
+        # 4. Update device state table
+        ddb.update_item(
+            TableName=os.environ["STATE_TABLE"],
+            Key={"deviceId": {"S": device_id}},
+            UpdateExpression="SET #s = :new",
+            ExpressionAttributeNames={"#s": "state"},
+            ExpressionAttributeValues={":new": {"S": json.dumps(decision)}}
+        )
+
+        return decision
+
+def lambda_handler(event, context):
+    processor = EventProcessor()
+
+    # Test event
+    test_event = {
+        "deviceId": "device1",
+        "type": "motion",
+        "data": {
+            "motion": True
+        }
     }
 
-
-# --------------------------------------------------
-# MAIN EVENT PROCESSOR (LAMBDA HANDLER)
-# --------------------------------------------------
-def handler(event, context=None):
-    """
-    === EVENT PROCESSING PIPELINE ===
-
-    1. Receive & parse event from AWS IoT
-    2. Query DynamoDB for previous state
-    3. Send event + state to LAM for reasoning
-    4. Validate LAM output (fallback if needed)
-    5. Build command payload
-    6. Publish command to AWS IoT MQTT
-    7. Update device state in DynamoDB
-    8. Log full event (event + LAM + command)
-    """
-
-    # 1. Parse event
-    if isinstance(event, str):
-        try:
-            event = json.loads(event)
-        except Exception:
-            return {"error": "Invalid JSON string received as event"}
-
-    if not isinstance(event, dict):
-        return {"error": "Event must be a JSON object"}
-
-    device_id = event.get("deviceId")
-    if not device_id:
-        return {"error": "Missing deviceId in event"}
-
-    # 2. Get previous device state
-    previous_state = get_device_state(device_id)
-
-    # 3. Build LAM input object
-    lam_input = {
-        "event": event,
-        "previousState": previous_state,
-    }
-
-    lam_decision = call_lam(lam_input)
-
-    # 4. Validate LAM response
-    if not validate_lam_output(lam_decision):
-        lam_decision = fallback_rule(event)
-
-    # 5. Build command payload
-    cmd = {
-        "deviceId": lam_decision["deviceId"],
-        "action": lam_decision["action"],
-        "value": lam_decision["value"],
-        "reason": lam_decision.get("reason", ""),
-    }
-
-    # 6. Publish command to AWS IoT MQTT (via boto3 in command_publisher)
-    publish_command(device_id, cmd)
-
-    # 7. Update device state (DynamoDB)
-    put_device_state(
-        device_id,
-        {
-            "lastEvent": event,
-            "lastCommand": cmd,
-            "updatedAt": event.get("timestamp", ""),
-        },
-    )
-
-    # 8. Log everything (event, LAM decision, command)
-    log_event(event, lam_decision, cmd)
-
-    # Return final output for debugging / API responses
-    return {
-        "status": "processed",
-        "event": event,
-        "lam": lam_decision,
-        "command": cmd,
-    }
+    processor.handle_event(test_event)
+    return processor.handle_event(event)

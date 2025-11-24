@@ -1,0 +1,9 @@
+AWS_REGION=us-east-1
+DEVICE_TABLE=Rakan_DeviceState
+LOG_TABLE=Rakan_EventLogs
+LAM_URL=https://l1mam7x5m0.execute-api.us-east-1.amazonaws.com/default
+LAM_API_KEY=uYmQ50F8891YaSnn2Gn0maSiuYVSO0lw4vYNsH4w
+MQTT_ENDPOINT=a2cu3qgpy7qzdx-ats.iot.us-east-1.amazonaws.com
+MQTT_CERT_PATH=certs/device.pem.crt
+MQTT_PRIVATE_KEY_PATH=certs/private.pem.key
+MQTT_CA_PATH=certs/AmazonRootCA1.pem

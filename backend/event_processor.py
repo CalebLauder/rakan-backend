@@ -12,6 +12,9 @@ from backend.db import (
 # Command publisher (publishes MQTT commands to AWS IoT)
 from backend.command_publisher import publish_command
 
+from dotenv import load_dotenv
+load_dotenv()
+
 
 # --------------------------------------------------
 # ENVIRONMENT VARIABLES (from backend/README / .env)

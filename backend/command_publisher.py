@@ -7,6 +7,9 @@ import paho.mqtt.client as mqtt
 
 from backend.db import log_event
 
+from dotenv import load_dotenv
+load_dotenv()
+
 
 # --------------------------------------------------
 # ENVIRONMENT VARIABLES (from backend/README / .env)

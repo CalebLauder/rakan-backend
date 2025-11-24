@@ -1,18 +1,28 @@
+import boto3
 import json
+import os
 
-class CommandPublisher:
+AWS_REGION = os.getenv("AWS_REGION", "us-east-1")
+
+# IoT Data Plane client (used for publishing to MQTT via AWS)
+iot_data = boto3.client("iot-data", region_name=AWS_REGION)
+
+
+def publish_command(deviceId, command_obj):
     """
-    Responsible for outputting device commands in the standard contract format.
-    Later, this will publish to AWS (SQS, Lambda, etc).
-    For now, it just prints.
+    Publishes a command to the AWS IoT MQTT topic:
+    rakan/commands/{deviceId}
     """
+    topic = f"rakan/commands/{deviceId}"
 
-    def publish(self, device_id, action, value):
-        command = {
-            "deviceId": device_id,
-            "action": action,
-            "value": value
-        }
+    payload = json.dumps(command_obj)
 
-        print("Publishing command:", json.dumps(command))
-        return command
+    try:
+        resp = iot_data.publish(
+            topic=topic,
+            qos=1,
+            payload=payload
+        )
+        return {"status": "ok", "topic": topic, "payload": payload}
+    except Exception as e:
+        return {"status": "error", "error": str(e), "topic": topic}

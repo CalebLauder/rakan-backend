@@ -13,9 +13,8 @@ from backend.db import (
 from backend.command_publisher import publish_command
 
 
-
 # --------------------------------------------------
-# ENVIRONMENT VARIABLES (from backend/README / .env)
+# ENVIRONMENT VARIABLES (Lambda env)
 # --------------------------------------------------
 LAM_API_KEY = os.getenv("LAM_API_KEY", "")
 LAM_URL = os.getenv("LAM_URL", "")
@@ -102,9 +101,7 @@ def handler(event, context=None):
     8. Log full event (event + LAM + command)
     """
 
-    # ------------------------------------------------
     # 1. Parse event
-    # ------------------------------------------------
     if isinstance(event, str):
         try:
             event = json.loads(event)
@@ -118,14 +115,10 @@ def handler(event, context=None):
     if not device_id:
         return {"error": "Missing deviceId in event"}
 
-    # ------------------------------------------------
     # 2. Get previous device state
-    # ------------------------------------------------
     previous_state = get_device_state(device_id)
 
-    # ------------------------------------------------
     # 3. Build LAM input object
-    # ------------------------------------------------
     lam_input = {
         "event": event,
         "previousState": previous_state,
@@ -133,15 +126,11 @@ def handler(event, context=None):
 
     lam_decision = call_lam(lam_input)
 
-    # ------------------------------------------------
     # 4. Validate LAM response
-    # ------------------------------------------------
     if not validate_lam_output(lam_decision):
         lam_decision = fallback_rule(event)
 
-    # ------------------------------------------------
     # 5. Build command payload
-    # ------------------------------------------------
     cmd = {
         "deviceId": lam_decision["deviceId"],
         "action": lam_decision["action"],
@@ -149,14 +138,10 @@ def handler(event, context=None):
         "reason": lam_decision.get("reason", ""),
     }
 
-    # ------------------------------------------------
-    # 6. Publish command to AWS IoT MQTT
-    # ------------------------------------------------
+    # 6. Publish command to AWS IoT MQTT (via boto3 in command_publisher)
     publish_command(device_id, cmd)
 
-    # ------------------------------------------------
     # 7. Update device state (DynamoDB)
-    # ------------------------------------------------
     put_device_state(
         device_id,
         {
@@ -166,9 +151,7 @@ def handler(event, context=None):
         },
     )
 
-    # ------------------------------------------------
     # 8. Log everything (event, LAM decision, command)
-    # ------------------------------------------------
     log_event(event, lam_decision, cmd)
 
     # Return final output for debugging / API responses

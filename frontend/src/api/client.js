@@ -2,7 +2,7 @@
 
 // Vite exposes environment variables that start with VITE_
 // We'll configure VITE_API_BASE_URL in a .env file.
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
 export async function fetchDevices() {
   const res = await fetch(`${BASE_URL}/devices`);
@@ -36,4 +36,5 @@ export async function sendCommand(deviceId, action, value) {
 
   return res.json(); // whatever backend returns (e.g. { message: "OK" })
 }
+
 

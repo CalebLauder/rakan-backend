@@ -10,9 +10,9 @@ import boto3
 # -----------------------------
 
 AWS_REGION = os.getenv("AWS_REGION", "us-east-1")
-EVENT_TABLE = os.getenv("EVENT_TABLE", "EventLogs")
-STATE_TABLE = os.getenv("STATE_TABLE", "DeviceState")
-LAM_FUNCTION_NAME = os.getenv("LAM_FUNCTION_NAME", "AI_DecisionEngine")
+EVENT_TABLE = os.getenv("EVENT_TABLE", "Rakan_EventLogs")
+STATE_TABLE = os.getenv("STATE_TABLE", "Rakan_DeviceState")
+LAM_FUNCTION_NAME = os.getenv("LAM_FUNCTION_NAME", "LAMDecisionEngine")
 COMMAND_TOPIC_FMT = os.getenv("COMMAND_TOPIC_FMT", "rakan/commands/{deviceId}")
 
 dynamodb = boto3.client("dynamodb", region_name=AWS_REGION)

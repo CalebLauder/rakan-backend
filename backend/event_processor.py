@@ -25,20 +25,18 @@ lam = boto3.client("lambda", region_name=AWS_REGION)
 # -----------------------------
 
 def _log_event(event: dict) -> None:
-    """
-    Store the raw incoming event in the EventLogs table.
-    """
     try:
         dynamodb.put_item(
             TableName=EVENT_TABLE,
             Item={
-                "id": {"S": str(uuid.uuid4())},
+                "logId": {"S": str(uuid.uuid4())},          # MUST match table PK
                 "timestamp": {"S": datetime.utcnow().isoformat() + "Z"},
                 "event": {"S": json.dumps(event)},
             },
         )
     except Exception as e:
         print(f"[EventProcessor] Failed to log event: {e}")
+
 
 
 def _update_device_state(device_id: str, decision: dict, event: dict) -> None:

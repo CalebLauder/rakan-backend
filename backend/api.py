@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 import boto3
 import os
@@ -12,7 +13,22 @@ EVENT_TABLE = os.getenv("EVENT_TABLE", "Rakan_EventLogs")
 
 dynamodb = boto3.client("dynamodb", region_name=AWS_REGION)
 
+# ----------------------------------------------------
+# FASTAPI APP + CORS CONFIGURATION
+# ----------------------------------------------------
 app = FastAPI(title="Rakan Backend API")
+
+# Allow frontend access from Vite (localhost:5173)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # --------------------------------
 # GET /devices
@@ -111,6 +127,8 @@ def send_command(device_id: str, body: dict):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# Local debug
+# ------------------------------
+# LOCAL RUN
+# ------------------------------
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

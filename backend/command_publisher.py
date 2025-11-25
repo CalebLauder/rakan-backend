@@ -3,10 +3,9 @@ import boto3
 
 class CommandPublisher:
     def __init__(self):
-        # THIS MUST RUN OR NOTHING WORKS
         self.client = boto3.client("iot-data", region_name="us-east-1")
 
-    def publish(self, device_id: str, command: dict):
+    def publish(self, device_id, command: dict):
         """
         command must contain:
             deviceId
@@ -24,13 +23,12 @@ class CommandPublisher:
             qos=1,
             payload=payload
         )
-
         print(f"[CommandPublisher] Published → {topic}: {payload}")
 
 
-# --------------------------------------------------
-# WRAPPER USED BY EventProcessor + API
-# --------------------------------------------------
+# -----------------------------
+# WRAPPER USED BY EVENTPROCESSOR
+# -----------------------------
 _publisher = CommandPublisher()
 
 def publish_command(device_id: str, command: dict):

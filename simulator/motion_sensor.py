@@ -33,21 +33,23 @@ class MotionSensor(BaseDevice):
         self.random = random.Random()
         self.motion_prob = 0.10  # 10% chance per cycle
 
+
     def _run_loop(self):
-    while not self._stop_event.is_set():
-        motion_detected = self.random.random() < self.motion_prob
+        while not self._stop_event.is_set():
+            motion_detected = self.random.random() < self.motion_prob
 
-        payload = {
-            "deviceId": self.device_id,
-            "type": "motion",
-            "data": {
-                "motion": motion_detected
-            },
-            "timestamp": time.time()
-        }
+            # NEW backend-compliant payload
+            payload = {
+                "deviceId": self.device_id,
+                "type": "motion",
+                "data": {
+                    "motion": motion_detected
+                },
+                "timestamp": time.time()
+            }
 
-        self.publish_event(payload)
-        time.sleep(5)
+            self.publish_event(payload)
+            time.sleep(5)
 
 
     def _on_message(self, client, userdata, msg):

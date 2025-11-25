@@ -35,7 +35,8 @@ class TemperatureSensor(BaseDevice):
         self.setpoint = None
         self.random = random.Random(seed)
 
-     def _run_loop(self):
+
+    def _run_loop(self):
         while not self._stop_event.is_set():
             drift = self.random.uniform(-0.5, 0.5)
             temp = (
@@ -58,15 +59,18 @@ class TemperatureSensor(BaseDevice):
 
 
     def _on_message(self, client, userdata, msg):
-        self.received_commands_count += 1
         try:
             command = json.loads(msg.payload.decode())
             action = command.get("action")
+
             if action == "set_setpoint":
                 self.setpoint = command.get("value")
+
             elif action == "clear_setpoint":
                 self.setpoint = None
+
             print(f"[TemperatureSensor] Command received: {command}")
+
         except Exception as e:
             self.last_error = str(e)
 

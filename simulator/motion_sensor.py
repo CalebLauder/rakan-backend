@@ -35,3 +35,26 @@ class MotionSensor(BaseDevice):
                 self.motion_prob_night = command.get("night", self.motion_prob_night)
         except Exception as e:
             self.last_error = str(e)
+
+
+    if __name__ == "__main__":
+    device = MotionSensor(
+        device_id="motion01",
+        client_id="motion01",
+        endpoint=MQTT_ENDPOINT,
+        cert=CERT_PATH,
+        key=KEY_PATH,
+        ca=CA_PATH
+    )
+
+    print(f"[MotionSensor] Starting device {device.device_id}...")
+    device.start()
+
+    # Keep the script alive forever
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        print("[MotionSensor] Stopping...")
+        device.stop()
+

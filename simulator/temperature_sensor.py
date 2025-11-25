@@ -35,7 +35,7 @@ class TemperatureSensor(BaseDevice):
         self.setpoint = None
         self.random = random.Random(seed)
 
-    def _run_loop(self):
+     def _run_loop(self):
         while not self._stop_event.is_set():
             drift = self.random.uniform(-0.5, 0.5)
             temp = (
@@ -46,13 +46,16 @@ class TemperatureSensor(BaseDevice):
 
             payload = {
                 "deviceId": self.device_id,
-                "sensor": "temperature",
-                "value": temp,
+                "type": "temperature",
+                "data": {
+                    "temperature": temp
+                },
                 "timestamp": time.time(),
             }
 
             self.publish_event(payload)
             time.sleep(3)
+
 
     def _on_message(self, client, userdata, msg):
         self.received_commands_count += 1

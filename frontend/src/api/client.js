@@ -5,7 +5,7 @@
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
 
 export async function fetchDevices() {
-  const res = await fetch(`${BASE_URL}/api/devices`);
+  const res = await fetch(`${BASE_URL}/devices`);
   if (!res.ok) {
     throw new Error(`Failed to fetch devices: ${res.status}`);
   }
@@ -13,7 +13,7 @@ export async function fetchDevices() {
 }
 
 export async function fetchEvents() {
-  const res = await fetch(`${BASE_URL}/api/events`);
+  const res = await fetch(`${BASE_URL}/events`);
   if (!res.ok) {
     throw new Error(`Failed to fetch events: ${res.status}`);
   }
@@ -21,7 +21,7 @@ export async function fetchEvents() {
 }
 
 export async function sendCommand(deviceId, action, value) {
-  const res = await fetch(`${BASE_URL}/api/control`, {
+  const res = await fetch(`${BASE_URL}/control`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
@@ -36,3 +36,4 @@ export async function sendCommand(deviceId, action, value) {
 
   return res.json(); // whatever backend returns (e.g. { message: "OK" })
 }
+
